@@ -8,6 +8,7 @@ import qualified Data.Map              as M
 import           Data.Maybe
 import           Network.HTTP.Client
 import           System.Environment
+import           Control.Concurrent.ParallelIO.Local
 
 import qualified One
 import qualified Two
@@ -66,11 +67,12 @@ solved =
 
 getSolution x = M.findWithDefault notImplemented x solved
 
+solve :: Int -> ([String] -> (String, String)) -> IO String -> IO String
 solve x f s = do
   (a1, a2) <- f . lines <$> s
-  putStrLn $ "Day " ++ show x ++ ":"
-  putStr "  " >> putStrLn a1
-  putStr "  " >> putStrLn a2
+  return $ "Day " ++ show x ++ ":\n"
+    ++ "  " ++ a1 ++ "\n"
+    ++ "  " ++ a2 ++ "\n"
 
 notImplemented s = ("Not implemented", "Input: " ++ unlines s)
 
@@ -91,6 +93,9 @@ main = do
   sessionKey <- readFile "sessionKey.txt"
   let ms = arg >>= maybeRead :: Maybe Int
       s = readInput sessionKey
-  case ms of
-    Just x -> solve x (getSolution x) $ s x
-    _      -> mapM_ (\x -> solve x (getSolution x) $ s x) (M.keys solved)--putStrLn "Usage : aoc <millisecond>"
+  let solvers =
+        case ms of
+          Just x -> [solve x (getSolution x) $ s x]
+          _      -> map (\x -> solve x (getSolution x) $ s x) (M.keys solved)
+  results <- withPool 25 (`parallel` solvers)
+  mapM_ putStr results

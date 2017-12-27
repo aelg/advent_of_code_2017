@@ -52,7 +52,7 @@ bitP = zero <++ one
 
 actionP :: ReadP Action
 actionP = do
-  string "If the current value is " >> get >> string ":" >> skipSpaces
+  string "If the current value is " >> bitP >> string ":" >> skipSpaces
   write <- string "- Write the value " >> bitP
   string "." >> skipSpaces
   dir <- string "- Move one slot to the " >> dirP
